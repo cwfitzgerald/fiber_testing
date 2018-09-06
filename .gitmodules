@@ -1,3 +1,3 @@
 [submodule "fiber_tasking_lib"]
 	path = fiber_tasking_lib
-	url = git@github.com:RichieSams/FiberTaskingLib.git
+	url = git@github.com:BVE-Reborn/fiber-tasking-library.git
