@@ -27,6 +27,7 @@
 #define FTL_TASK_STRUCT_3(arg2, ...) arg2; EXPAND(FTL_TASK_STRUCT_2(__VA_ARGS__))
 #define FTL_TASK_STRUCT_2(arg1, ...) arg1; EXPAND(FTL_TASK_STRUCT_1(__VA_ARGS__))
 #define FTL_TASK_STRUCT_1(arg0) arg0;
+#define FTL_TASK_STRUCT_0()
 
 #define FTL_TASK_FUNCTION_PROTOTYPE(name, ...) void name(::ftl::TaskScheduler* scheduler, void* _args_impl )
 #define FTL_TASK_FUNCTION(name, ...) EXPAND(FTL_TASK_STRUCT(name, __VA_ARGS__));  EXPAND(FTL_TASK_FUNCTION_PROTOTYPE(name, __VA_ARGS__))
@@ -35,6 +36,7 @@
 #define FTL_GET_ARGS_3(arg2, ...) auto&& arg2 = _args_struct_impl->arg2; EXPAND(FTL_GET_ARGS_2(__VA_ARGS__))
 #define FTL_GET_ARGS_2(arg1, ...) auto&& arg1 = _args_struct_impl->arg1; EXPAND(FTL_GET_ARGS_1(__VA_ARGS__))
 #define FTL_GET_ARGS_1(arg0) auto&& arg0 = _args_struct_impl->arg0;
+#define FTL_GET_ARGS_0()
 
 #define FTL_CREATE_ARGS(name, ...) FTL_STRUCT_NAME(name){__VA_ARGS__}
 
@@ -43,7 +45,7 @@ FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, s
 
 	auto const size = std::distance(input_begin, input_end);
 
-	if (size < (2 << 14) / sizeof(std::int64_t)) {
+	if (size < (2 << 20) / sizeof(std::int64_t)) {
 		std::sort(input_begin, input_end);
 	}
 	else {
@@ -67,8 +69,8 @@ FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, s
 	}
 }
 
-int main() {
-	std::size_t const data_size = (2 << 16);
+void test_sorting() {
+	std::size_t const data_size = (2 << 28);
 	std::size_t const array_count = data_size / sizeof(std::int64_t);
 
 	auto const get_mb_sec = [&](auto start, auto end) {
@@ -91,7 +93,7 @@ int main() {
 	auto const gen_start = std::chrono::high_resolution_clock::now();
 
 	std::uniform_int_distribution<std::int64_t> uid(std::numeric_limits<std::int64_t>::min(),
-		                                            std::numeric_limits<std::int64_t>::max());
+	                                                std::numeric_limits<std::int64_t>::max());
 
 	std::generate_n(std::back_inserter(array_par), array_count, [&] { return uid(rng); });
 
@@ -106,11 +108,11 @@ int main() {
 	///////////////////
 
 	auto const par_sort_start = std::chrono::high_resolution_clock::now();
-	
+
 	auto args = FTL_CREATE_ARGS(SortSubset, array_par.begin(), array_par.end());
 
-	task_scheduler.Run(160, SortSubset, &args, 0, ftl::EmptyQueueBehavior::Spin);
-	
+	task_scheduler.Run(160, SortSubset, &args, 4, ftl::EmptyQueueBehavior::Spin);
+
 	auto const par_sort_end = std::chrono::high_resolution_clock::now();
 
 	std::cout << "Parallel Sort - Sorted: " << std::boolalpha << std::is_sorted(array_par.begin(), array_par.end()) << ". Bandwidth: " << std::fixed << std::setprecision(1) << get_mb_sec(par_sort_start, par_sort_end) << "MB/s\n";
@@ -127,5 +129,14 @@ int main() {
 
 	std::cout << "Sequential Sort - Sorted: " << std::boolalpha << std::is_sorted(array_seq.begin(), array_seq.end()) << ". Bandwidth: " << std::fixed << std::setprecision(1) << get_mb_sec(seq_sort_start, seq_sort_end) << "MB/s\n";
 
+}
+
+FTL_TASK_FUNCTION(does_nothing) {
+	FTL_GET_ARGS(does_nothing);
+	// nothing
+}
+
+int main() {
+	test_sorting();
 
 }
