@@ -1,5 +1,6 @@
 #include <ftl/task_scheduler.h>
 #include <ftl/atomic_counter.h>
+#include <ftl/macros.h>
 #include <vector>
 #include <cstdlib>
 #include <iterator>
@@ -8,39 +9,7 @@
 #include <random>
 #include <iostream>
 
-#define EXPAND(x) x
-#define CONCAT_HELPER(a, b) a ## b
-#define CONCAT(a, b) EXPAND(CONCAT_HELPER(a, b))
-#ifdef _MSC_VER
-#   define GET_ARG_COUNT(...)  INTERNAL_EXPAND_ARGS_PRIVATE(INTERNAL_ARGS_AUGMENTER(__VA_ARGS__))
-#   define INTERNAL_ARGS_AUGMENTER(...) unused, __VA_ARGS__
-#   define INTERNAL_EXPAND_ARGS_PRIVATE(...) EXPAND(INTERNAL_GET_ARG_COUNT_PRIVATE(__VA_ARGS__, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
-#   define INTERNAL_GET_ARG_COUNT_PRIVATE(_1_, _2_, _3_, _4_, _5_, _6_, _7_, _8_, _9_, _10_, _11_, _12_, _13_, _14_, _15_, _16_, _17_, _18_, _19_, _20_, _21_, _22_, _23_, _24_, _25_, _26_, _27_, _28_, _29_, _30_, _31_, _32_, _33_, _34_, _35_, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, _64, _65, _66, _67, _68, _69, _70, count, ...) count
-#else
-#   define GET_ARG_COUNT(...) INTERNAL_GET_ARG_COUNT_PRIVATE(0, ## __VA_ARGS__, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#   define INTERNAL_GET_ARG_COUNT_PRIVATE(_0, _1_, _2_, _3_, _4_, _5_, _6_, _7_, _8_, _9_, _10_, _11_, _12_, _13_, _14_, _15_, _16_, _17_, _18_, _19_, _20_, _21_, _22_, _23_, _24_, _25_, _26_, _27_, _28_, _29_, _30_, _31_, _32_, _33_, _34_, _35_, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, _64, _65, _66, _67, _68, _69, _70, count, ...) count
-#endif
-
-#define FTL_STRUCT_NAME(name) CONCAT(_argstruct_, name)
-
-#define FTL_TASK_STRUCT(name, ...) struct FTL_STRUCT_NAME(name) { EXPAND(CONCAT(FTL_TASK_STRUCT_, GET_ARG_COUNT(__VA_ARGS__))(__VA_ARGS__)) }
-#define FTL_TASK_STRUCT_3(arg2, ...) arg2; EXPAND(FTL_TASK_STRUCT_2(__VA_ARGS__))
-#define FTL_TASK_STRUCT_2(arg1, ...) arg1; EXPAND(FTL_TASK_STRUCT_1(__VA_ARGS__))
-#define FTL_TASK_STRUCT_1(arg0) arg0;
-#define FTL_TASK_STRUCT_0()
-
-#define FTL_TASK_FUNCTION_PROTOTYPE(name, ...) void name(::ftl::TaskScheduler* scheduler, void* _args_impl )
-#define FTL_TASK_FUNCTION(name, ...) EXPAND(FTL_TASK_STRUCT(name, __VA_ARGS__));  EXPAND(FTL_TASK_FUNCTION_PROTOTYPE(name, __VA_ARGS__))
-
-#define FTL_GET_ARGS(name, ...) auto* _args_struct_impl = reinterpret_cast<FTL_STRUCT_NAME(name)*>(_args_impl); EXPAND(CONCAT(FTL_GET_ARGS_, GET_ARG_COUNT(__VA_ARGS__))(__VA_ARGS__))
-#define FTL_GET_ARGS_3(arg2, ...) auto&& arg2 = _args_struct_impl->arg2; EXPAND(FTL_GET_ARGS_2(__VA_ARGS__))
-#define FTL_GET_ARGS_2(arg1, ...) auto&& arg1 = _args_struct_impl->arg1; EXPAND(FTL_GET_ARGS_1(__VA_ARGS__))
-#define FTL_GET_ARGS_1(arg0) auto&& arg0 = _args_struct_impl->arg0;
-#define FTL_GET_ARGS_0()
-
-#define FTL_CREATE_ARGS(name, ...) FTL_STRUCT_NAME(name){__VA_ARGS__}
-
-FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, std::vector<std::int64_t>::iterator input_end) {
+FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, std::vector<std::int64_t>::iterator input_end){
 	FTL_GET_ARGS(SortSubset, input_begin, input_end);
 
 	auto const size = std::distance(input_begin, input_end);
@@ -51,7 +20,7 @@ FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, s
 	else {
 		auto const midpoint = input_begin + (size / 2);
 
-		std::array<FTL_STRUCT_NAME(SortSubset), 2> args {
+		std::array<FTL_STRUCT_TYPE(SortSubset), 2> args {
 			FTL_CREATE_ARGS(SortSubset, input_begin, midpoint),
 			FTL_CREATE_ARGS(SortSubset, midpoint, input_end)
 		};
@@ -136,7 +105,77 @@ FTL_TASK_FUNCTION(does_nothing) {
 	// nothing
 }
 
-int main() {
-	test_sorting();
+FTL_TASK_FUNCTION(spawns_10) {
+	FTL_GET_ARGS(spawns_10);
 
+	std::array<FTL_STRUCT_TYPE(does_nothing), 10> subargs{};
+
+	for (auto& arg : subargs) {
+		arg = FTL_CREATE_ARGS(does_nothing);
+	}
+
+	std::array<ftl::Task, 10> subtasks{};
+
+	for(std::size_t i = 0; i < 10; ++i) {
+		subtasks[i].Function = does_nothing;
+		subtasks[i].ArgData = &subargs[i];
+	}
+
+	ftl::AtomicCounter counter(scheduler);
+	scheduler->AddTasks(10, subtasks.data(), &counter);
+
+	scheduler->WaitForCounter(&counter, 0);
+}
+
+FTL_TASK_FUNCTION(spawn_nothings, std::size_t task_count) {
+	FTL_GET_ARGS(spawn_nothings, task_count);
+
+	std::cout << "Generating " << task_count << " tasks\n";
+
+	std::vector<ftl::Task> tasks (task_count, ftl::Task{does_nothing, nullptr});
+	std::vector<ftl::Task> subtasks (task_count / 10, ftl::Task{spawns_10, nullptr});
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	ftl::AtomicCounter counter(scheduler);
+	scheduler->AddTasks(task_count, tasks.data(), &counter);
+
+	scheduler->WaitForCounter(&counter, 0);
+
+	auto end = std::chrono::high_resolution_clock::now();
+
+	auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+	auto micros = std::chrono::duration_cast<std::chrono::microseconds>(nanos);
+
+	std::cout << "No suboperations done in " << micros.count() << "us. " << nanos.count() / task_count << "ns per operation. " << (1'000'000. / micros.count()) * task_count << " per second.\n";
+
+	start = std::chrono::high_resolution_clock::now();
+
+	scheduler->AddTasks(task_count, tasks.data(), &counter);
+
+	scheduler->WaitForCounter(&counter, 0);
+
+	end = std::chrono::high_resolution_clock::now();
+
+	nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+	micros = std::chrono::duration_cast<std::chrono::microseconds>(nanos);
+
+	std::cout << "Suboperations done in " << micros.count() << "us. " << nanos.count() / task_count << "ns per operation. " << (1'000'000. / micros.count()) * task_count << " per second\n";
+}
+
+void test_switching_speed() {
+	ftl::TaskScheduler taskScheduler;
+
+	constexpr std::size_t task_count = (1ULL << 22);
+
+	auto spawner_args = FTL_CREATE_ARGS(spawn_nothings, task_count);
+
+	taskScheduler.Run(100, spawn_nothings, &spawner_args);
+}
+
+int main() {
+	std::cout << "==== Sorting ===\n";
+	test_sorting();
+	std::cout << "\n==== Empty Tasks ===\n";
+	test_switching_speed();
 }
