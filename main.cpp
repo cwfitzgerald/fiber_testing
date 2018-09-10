@@ -20,9 +20,9 @@ FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, s
 	else {
 		auto const midpoint = input_begin + (size / 2);
 
-		std::array<FTL_STRUCT_TYPE(SortSubset), 2> args {
-			FTL_CREATE_ARGS(SortSubset, input_begin, midpoint),
-			FTL_CREATE_ARGS(SortSubset, midpoint, input_end)
+		std::array<FTL_STRUCT_TYPE(SortSubset)*, 2> args {
+			FTL_CREATE_ARGS_ALLOC(SortSubset, input_begin, midpoint),
+			FTL_CREATE_ARGS_ALLOC(SortSubset, midpoint, input_end)
 		};
 		std::array<ftl::Task, 2> tasks {
 			ftl::Task{SortSubset, &args[0]},
@@ -39,7 +39,7 @@ FTL_TASK_FUNCTION(SortSubset, std::vector<std::int64_t>::iterator input_begin, s
 }
 
 void test_sorting() {
-	std::size_t const data_size = (2 << 28);
+	std::size_t const data_size = (2 << 24);
 	std::size_t const array_count = data_size / sizeof(std::int64_t);
 
 	auto const get_mb_sec = [&](auto start, auto end) {
@@ -78,7 +78,7 @@ void test_sorting() {
 
 	auto const par_sort_start = std::chrono::high_resolution_clock::now();
 
-	auto args = FTL_CREATE_ARGS(SortSubset, array_par.begin(), array_par.end());
+	auto args = FTL_CREATE_ARGS_ALLOC(SortSubset, array_par.begin(), array_par.end());
 
 	task_scheduler.Run(160, SortSubset, &args, 4, ftl::EmptyQueueBehavior::Spin);
 
@@ -108,10 +108,10 @@ FTL_TASK_FUNCTION(does_nothing) {
 FTL_TASK_FUNCTION(spawns_10) {
 	FTL_GET_ARGS(spawns_10);
 
-	std::array<FTL_STRUCT_TYPE(does_nothing), 10> subargs{};
+	std::array<FTL_STRUCT_TYPE(does_nothing)*, 10> subargs{};
 
 	for (auto& arg : subargs) {
-		arg = FTL_CREATE_ARGS(does_nothing);
+		arg = FTL_CREATE_ARGS_ALLOC(does_nothing);
 	}
 
 	std::array<ftl::Task, 10> subtasks{};
@@ -168,14 +168,14 @@ void test_switching_speed() {
 
 	constexpr std::size_t task_count = (1ULL << 22);
 
-	auto spawner_args = FTL_CREATE_ARGS(spawn_nothings, task_count);
+	auto* spawner_args = FTL_CREATE_ARGS_ALLOC(spawn_nothings, task_count);
 
 	taskScheduler.Run(100, spawn_nothings, &spawner_args);
 }
 
 int main() {
-	std::cout << "==== Sorting ===\n";
-	test_sorting();
+	// std::cout << "==== Sorting ===\n";
+	// test_sorting();
 	std::cout << "\n==== Empty Tasks ===\n";
 	test_switching_speed();
 }
